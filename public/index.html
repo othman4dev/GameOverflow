@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Overflow - Where Developers Learn, Share, & Build Careers</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <!-- StackOverflow Header -->
+    <header class="so-header">
+        <div class="so-header-container">
+            <div class="so-header-left">
+                <button class="menu-btn"><i class="fas fa-bars"></i></button>
+                <div class="so-logo">
+                    <span class="logo-stack">stack</span><span class="logo-overflow">overflow</span>
+                </div>
+                <nav class="so-nav">
+                    <a href="#" class="nav-item">Products</a>
+                    <a href="#" class="nav-item">OverflowAI</a>
+                </nav>
+            </div>
+            
+            <div class="so-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search...">
+            </div>
+            
+            <div class="so-header-right">
+                <div class="time-display" id="timeDisplay"></div>
+                <button class="so-btn-icon"><i class="fas fa-inbox"></i></button>
+                <button class="so-btn-icon"><i class="fas fa-trophy"></i></button>
+                <button class="so-btn-icon"><i class="fas fa-question-circle"></i></button>
+                <div class="user-menu">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='%23007acc'%3E%3Cpath d='M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm5.5 24.5h-3V18h-5v6.5h-3V7.5h3v7h5v-7h3v17z'/%3E%3C/svg%3E" alt="user avatar" class="user-avatar">
+                    <span class="user-rep">1,247</span>
+                    <i class="fas fa-caret-down"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="so-container">
+        <!-- Sidebar -->
+        <aside class="so-sidebar">
+            <nav class="so-sidebar-nav">
+                <div class="nav-section">
+                    <a href="#" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <div class="nav-label">PUBLIC</div>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-globe"></i>
+                        <span>Questions</span>
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-tags"></i>
+                        <span>Tags</span>
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Users</span>
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Companies</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-label">COLLECTIVES</div>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-star"></i>
+                        <span>Explore Collectives</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-label">TEAMS</div>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Create free Team</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="so-main">
+            <div class="so-main-bar">
+                <h1>Top Questions</h1>
+                <button class="so-btn-primary" id="askQuestionBtn">Ask Question</button>
+            </div>
+            
+            <div class="so-tabs">
+                <button class="so-tab active">Interesting</button>
+                <button class="so-tab">36 Bountied</button>
+                <button class="so-tab">Hot</button>
+                <button class="so-tab">Week</button>
+                <button class="so-tab">Month</button>
+            </div>
+
+            <div class="so-questions" id="questionsList">
+                <!-- Questions will be loaded here -->
+            </div>
+
+            <!-- Comments Section styled as "Looking for more?" -->
+            <div class="so-more-section">
+                <h3>Looking for more? Browse the <a href="#">complete list of questions</a>, or <a href="#">popular tags</a>. Help us answer <a href="#">unanswered questions</a>.</h3>
+                
+                <!-- Chat Section -->
+                <div class="so-chat-section">
+                    <h4><i class="fas fa-comments"></i> The Overflow Blog</h4>
+                    <div class="chat-container" id="commentsContainer">
+                        <!-- Comments will be loaded here -->
+                    </div>
+                    
+                    <div class="chat-form">
+                        <input type="text" id="commentAuthor" placeholder="Your name" value="Anonymous">
+                        <input type="text" id="commentContent" placeholder="Join the discussion...">
+                        <button id="sendCommentBtn" class="so-btn-primary-sm">Post</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar with Chess Ad -->
+        <aside class="so-right-sidebar">
+            <!-- Blog Links -->
+            <div class="so-widget">
+                <h4>The Overflow Blog</h4>
+                <ul class="widget-list">
+                    <li><i class="fas fa-pencil-alt"></i> The unexpected benefits of mentoring others</li>
+                    <li><i class="fas fa-pencil-alt"></i> Podcast 364: Building for the 90% developer</li>
+                </ul>
+            </div>
+
+            <!-- Featured & Meta -->
+            <div class="so-widget">
+                <h4>Featured on Meta</h4>
+                <ul class="widget-list">
+                    <li><i class="fas fa-comment"></i> New colors launched</li>
+                    <li><i class="fas fa-comment"></i> Planned maintenance scheduled</li>
+                </ul>
+            </div>
+
+            <!-- Chess Advertisement - Disguised as a normal ad -->
+            <div class="chess-ad-widget">
+                <div class="ad-label">advertisement</div>
+                <div class="chess-ad-content">
+                    <div class="ad-title">
+                        <h3>Master Chess Online</h3>
+                        <p>Play against developers worldwide</p>
+                    </div>
+                    
+                    <div class="chess-mini-board" id="chessBoard">
+                        <!-- Chess board will be generated here -->
+                    </div>
+                    
+                    <div class="chess-players">
+                        <div class="player-info">
+                            <span class="player-name" id="whitePlayerName">Join Game</span>
+                            <span class="player-time" id="whiteTime">5:00</span>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="player-info">
+                            <span class="player-name" id="blackPlayerName">Waiting...</span>
+                            <span class="player-time" id="blackTime">5:00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chess-controls-mini">
+                        <select id="timeControl" class="time-select">
+                            <option value="3+2">3+2 Blitz</option>
+                            <option value="5+0" selected>5+0 Blitz</option>
+                            <option value="5+5">5+5 Rapid</option>
+                        </select>
+                        <input type="text" id="playerName" placeholder="Your name" class="name-input">
+                        <input type="text" id="gameId" placeholder="Game ID" class="game-input">
+                        <button id="joinGameBtn" class="play-btn">
+                            <i class="fas fa-play"></i> Play Now
+                        </button>
+                        
+                        <div class="game-actions" id="gameActions" style="display: none;">
+                            <button id="resignBtn" class="action-btn resign-btn">
+                                <i class="fas fa-flag"></i> Resign
+                            </button>
+                            <button id="drawBtn" class="action-btn draw-btn">
+                                <i class="fas fa-handshake"></i> Draw
+                            </button>
+                        </div>
+                        
+                        <div class="draw-offer" id="drawOffer" style="display: none;">
+                            <p>Draw offered!</p>
+                            <button id="acceptDrawBtn" class="action-btn accept-btn">Accept</button>
+                            <button id="declineDrawBtn" class="action-btn decline-btn">Decline</button>
+                        </div>
+                        
+                        <button id="replayBtn" class="play-btn" style="display: none;">
+                            <i class="fas fa-repeat"></i>
+                            Replay
+                        </button>
+                    </div>
+                    
+                    <div class="game-status-mini" id="gameStatus">Ready to play!</div>
+                    
+                    <!-- Move History -->
+                    <div class="move-history" id="moveHistory" style="display: none;">
+                        <h4>Move History</h4>
+                        <div class="moves-list" id="movesList"></div>
+                    </div>
+                    
+                    <!-- Game Chat -->
+                    <div class="game-chat" id="gameChat" style="display: none;">
+                        <h4>Game Chat</h4>
+                        <div class="chat-messages" id="chatMessages"></div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chatInput" placeholder="Type a message..." class="chat-input">
+                            <button id="sendMessageBtn" class="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hot Network Questions -->
+            <div class="so-widget">
+                <h4>Hot Network Questions</h4>
+                <ul class="widget-list hot-questions">
+                    <li><i class="fas fa-fire"></i> How to optimize UUID generation for high-throughput applications?</li>
+                    <li><i class="fas fa-fire"></i> PostgreSQL performance with UUID primary keys</li>
+                    <li><i class="fas fa-fire"></i> UUID collision probability in distributed systems</li>
+                    <li><i class="fas fa-fire"></i> Best practices for UUID storage in microservices</li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Ask Question Modal -->
+    <div class="so-modal" id="askQuestionModal">
+        <div class="so-modal-content">
+            <div class="so-modal-header">
+                <h2>Ask a public question</h2>
+                <button class="so-modal-close" id="closeModal">&times;</button>
+            </div>
+            <form id="questionForm">
+                <div class="so-form-group">
+                    <label>Title</label>
+                    <p class="form-help">Be specific and imagine you're asking a question to another person</p>
+                    <input type="text" id="questionTitle" placeholder="e.g. Is there an R function for finding the index of an element in a vector?" required>
+                </div>
+                <div class="so-form-group">
+                    <label>Body</label>
+                    <p class="form-help">Include all the information someone would need to answer your question</p>
+                    <textarea id="questionContent" placeholder="Provide all the relevant details about your question..." rows="15" required></textarea>
+                </div>
+                <div class="so-form-group">
+                    <label>Tags</label>
+                    <p class="form-help">Add up to 5 tags to describe what your question is about</p>
+                    <input type="text" id="questionTags" placeholder="e.g. javascript react nodejs">
+                </div>
+                <div class="so-form-group">
+                    <label>Author</label>
+                    <input type="text" id="questionAuthor" placeholder="Your name" required>
+                </div>
+                <div class="so-form-actions">
+                    <button type="submit" class="so-btn-primary">Post your question</button>
+                    <button type="button" class="so-btn-secondary" id="cancelQuestion">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
