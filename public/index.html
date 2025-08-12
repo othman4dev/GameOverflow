@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="shortcut icon" href="./img/favicon.png" type="image/x-icon">
-    
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -281,9 +280,29 @@
                         <h3>Master Chess Online</h3>
                         <p>Play against developers worldwide</p>
                     </div>
+
+                    <!-- Captured Pieces Display -->
+                    <div class="captured-pieces-container" id="capturedPiecesContainer">
+                        <div class="captured-pieces-black">
+                            <div class="captured-header">
+                                <span class="black" id="p2Advantage"></span>
+                            </div>
+                            <div class="captured-list black" id="p2Captured"></div>
+                        </div>
+                    </div>
                     
                     <div class="chess-mini-board" id="chessBoard">
                         <!-- Chess board will be generated here -->
+                    </div>
+                    
+                    <!-- Captured Pieces Display -->
+                    <div class="captured-pieces-container" id="capturedPiecesContainer">
+                        <div class="captured-pieces-black">
+                            <div class="captured-header">
+                                <span class="white" id="p1Advantage"></span>
+                            </div>
+                            <div class="captured-list white" id="p1Captured"></div>
+                        </div>
                     </div>
                     
                     <div class="chess-players">
@@ -446,4 +465,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
