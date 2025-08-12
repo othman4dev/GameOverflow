@@ -40,6 +40,39 @@ const games = new Map();
 const players = new Map();
 const comments = [];
 
+// Rate limiting for moves
+const moveRateLimit = new Map();
+const MOVE_RATE_LIMIT = 50; // 50ms minimum between moves
+const MAX_MOVES_PER_MINUTE = 60;
+
+// Cleanup old games every hour
+setInterval(() => {
+  const now = Date.now();
+  const ONE_HOUR = 60 * 60 * 1000;
+  
+  for (const [gameId, game] of games.entries()) {
+    // Remove games that are finished and older than 1 hour
+    if (game.gameState === 'finished' && (now - game.lastMoveTime) > ONE_HOUR) {
+      console.log(`Cleaning up old game: ${gameId}`);
+      games.delete(gameId);
+    }
+    // Remove abandoned games older than 30 minutes
+    else if (game.gameState === 'abandoned' && (now - game.lastMoveTime) > (30 * 60 * 1000)) {
+      console.log(`Cleaning up abandoned game: ${gameId}`);
+      games.delete(gameId);
+    }
+  }
+  
+  // Clean up orphaned rate limit data
+  for (const [playerId, rateData] of moveRateLimit.entries()) {
+    if ((now - rateData.lastMove) > ONE_HOUR) {
+      moveRateLimit.delete(playerId);
+    }
+  }
+  
+  console.log(`Active games: ${games.size}, Rate limit entries: ${moveRateLimit.size}`);
+}, 60 * 60 * 1000); // Run every hour
+
 // Initial blog posts
 const blogPosts = [
   {
@@ -259,9 +292,73 @@ io.on('connection', (socket) => {
   });
 
   socket.on('make-move', (data) => {
-    const { gameId, from, to } = data;
-    const game = games.get(gameId);
-    const player = players.get(socket.id);
+    try {
+      const { gameId, from, to } = data;
+      
+      // Rate limiting
+      const now = Date.now();
+      const playerRateData = moveRateLimit.get(socket.id) || { lastMove: 0, moveCount: 0, windowStart: now };
+      
+      // Check minimum time between moves
+      if (now - playerRateData.lastMove < MOVE_RATE_LIMIT) {
+        console.warn('Move rate limit exceeded by', socket.id);
+        return;
+      }
+      
+      // Reset window if needed
+      if (now - playerRateData.windowStart > 60000) {
+        playerRateData.moveCount = 0;
+        playerRateData.windowStart = now;
+      }
+      
+      // Check moves per minute limit
+      if (playerRateData.moveCount >= MAX_MOVES_PER_MINUTE) {
+        console.warn('Moves per minute limit exceeded by', socket.id);
+        return;
+      }
+      
+      // Update rate limit data
+      playerRateData.lastMove = now;
+      playerRateData.moveCount++;
+      moveRateLimit.set(socket.id, playerRateData);
+      
+      // Validate input data
+      if (!gameId || !from || !to || 
+          typeof gameId !== 'string' || 
+          typeof from !== 'object' || typeof to !== 'object' ||
+          typeof from.row !== 'number' || typeof from.col !== 'number' ||
+          typeof to.row !== 'number' || typeof to.col !== 'number' ||
+          from.row < 0 || from.row > 7 || from.col < 0 || from.col > 7 ||
+          to.row < 0 || to.row > 7 || to.col < 0 || to.col > 7) {
+        console.error('Invalid move data received from', socket.id);
+        return;
+      }
+      
+      const game = games.get(gameId);
+      const player = players.get(socket.id);
+      
+      if (!game || !player) {
+        console.error('Game or player not found for move request');
+        return;
+      }
+      
+      // Validate game state and player turn
+      if (game.gameState !== 'active') {
+        console.error('Move attempted on inactive game');
+        return;
+      }
+      
+      if (game.currentPlayer !== player.color) {
+        console.error('Move attempted by wrong player');
+        return;
+      }
+      
+      // Validate that the player is actually in this game
+      const playerInGame = game.players.find(p => p.id === socket.id);
+      if (!playerInGame) {
+        console.error('Player not in game attempting move');
+        return;
+      }
     
     if (game && player && game.currentPlayer === player.color && game.gameState === 'active') {
       if (isValidMove(game.board, from, to, player.color, game)) {
@@ -334,6 +431,10 @@ io.on('connection', (socket) => {
         
         io.to(gameId).emit('game-update', game);
       }
+    }
+    } catch (error) {
+      console.error('Error processing move:', error);
+      socket.emit('message-error', { error: 'Move processing failed' });
     }
   });
 
@@ -518,7 +619,17 @@ io.on('connection', (socket) => {
           p.color = p.color === 'white' ? 'black' : 'white';
         });
         
-        io.to(gameId).emit('game-update', game);
+        // Send individual game updates to ensure proper color sync
+        game.players.forEach(player => {
+          io.to(player.id).emit('game-update', game);
+        });
+        
+        // Send to spectators as well
+        if (game.spectators && game.spectators.length > 0) {
+          game.spectators.forEach(spectator => {
+            io.to(spectator.id).emit('game-update', game);
+          });
+        }
       } else {
         // Notify the offering player that replay was declined
         const offeringPlayer = game.players.find(p => p.id === game.replayOffer.from);
@@ -541,24 +652,26 @@ io.on('connection', (socket) => {
     const player = players.get(socket.id);
     
     // Input validation
-    if (!game || !player || !message) {
+    if (!game || !player || !message || typeof message !== 'string') {
       return;
     }
     
-    const trimmedMessage = message.trim();
-    if (!trimmedMessage) {
+    // HTML sanitization - remove HTML tags
+    const sanitizedMessage = message.replace(/<[^>]*>/g, '').trim();
+    
+    if (!sanitizedMessage) {
       return;
     }
     
     // Max length validation (150 characters)
-    if (trimmedMessage.length > 150) {
+    if (sanitizedMessage.length > 150) {
       socket.emit('message-error', { error: 'Message too long (max 150 characters)' });
       return;
     }
     
     // Basic content filtering
     const forbiddenWords = ['spam', 'hack', 'cheat']; // Add more as needed
-    const lowerMessage = trimmedMessage.toLowerCase();
+    const lowerMessage = sanitizedMessage.toLowerCase();
     if (forbiddenWords.some(word => lowerMessage.includes(word))) {
       socket.emit('message-error', { error: 'Message contains inappropriate content' });
       return;
@@ -569,7 +682,7 @@ io.on('connection', (socket) => {
       gameId: gameId,
       sender: player.name,
       senderColor: player.color,
-      message: trimmedMessage,
+      message: sanitizedMessage,
       timestamp: new Date(),
       readBy: [socket.id] // Sender automatically reads their own message
     };
@@ -606,6 +719,10 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    
+    // Clean up rate limiting data
+    moveRateLimit.delete(socket.id);
+    
     const player = players.get(socket.id);
     if (player) {
       const game = games.get(player.gameId);
@@ -618,7 +735,16 @@ io.on('connection', (socket) => {
         } else {
           // Handle player disconnect
           if (game.gameState === 'active') {
-            game.gameState = 'abandoned';
+            // Give the player 30 seconds to reconnect before abandoning
+            setTimeout(() => {
+              const currentGame = games.get(player.gameId);
+              const currentPlayer = players.get(socket.id);
+              if (!currentPlayer && currentGame && currentGame.gameState === 'active') {
+                currentGame.gameState = 'abandoned';
+                currentGame.endReason = 'disconnection';
+                io.to(player.gameId).emit('game-update', currentGame);
+              }
+            }, 30000);
           }
           io.to(player.gameId).emit('game-update', game);
         }
