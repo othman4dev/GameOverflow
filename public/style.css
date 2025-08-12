@@ -1666,6 +1666,94 @@ button:disabled:hover {
     background: #8b7355;
 }
 
+/* Captured Pieces Display */
+.captured-pieces-container {
+    width: 100%;
+    max-width: 220px;
+    margin: 4px auto;
+    font-size: 12px;
+    display: none; /* Hidden by default until game starts */
+}
+
+.captured-pieces-white, .captured-pieces-black {
+    padding: 6px 8px;
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    border: 1px solid #e3e6e8;
+    border-radius: 6px;
+    width: 100%;
+    min-height: 32px;
+    display: flex;
+    flex-direction: column;
+}
+
+.captured-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.player-advantage {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #28a745;
+    color: white;
+    font-weight: 500;
+}
+
+.player-advantage.negative {
+    background: #dc3545;
+}
+
+.player-advantage.neutral {
+    background: #6c757d;
+}
+
+.captured-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    min-height: 20px;
+    align-items: center;
+}
+
+.captured-piece {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.captured-piece-icon {
+    font-size: 16px;
+}
+
+.captured-piece-count {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 2px;
+    padding: 1px 3px;
+    min-width: 12px;
+    text-align: center;
+}
+
+/* Different piece colors */
+.captured-piece.white-piece .captured-piece-icon {
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.captured-piece.black-piece .captured-piece-icon {
+    color: #000000;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+}
+
 .chess-square {
     aspect-ratio: 1;
     display: flex;
@@ -3296,4 +3384,96 @@ button:disabled:hover {
 .url-help strong {
     color: #0074cc;
     font-family: 'Courier New', monospace;
+}
+
+/* Platform Dropdown */
+.platform-dropdown {
+    position: relative;
+}
+
+.platform-btn {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.platform-btn:hover {
+    background-color: #e3e6e8;
+}
+
+.platform-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #d6d9dc;
+    border-radius: 3px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 250px;
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+.platform-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.platform-section {
+    padding: 16px;
+}
+
+.platform-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #232629;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e3e6e8;
+    padding-bottom: 8px;
+}
+
+.platform-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.platform-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 2px solid #e3e6e8;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.platform-option:hover {
+    border-color: #f48024;
+    background: #fef9f5;
+}
+
+.platform-option.active {
+    border-color: #f48024;
+    background: #fff8f0;
+}
+
+.platform-option i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: #232629;
+}
+
+.platform-option span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #232629;
 }
