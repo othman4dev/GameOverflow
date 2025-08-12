@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadComments();
     initializeEventListeners();
     initializeChessBoard();
+    initializeArticleSystem();
     
     // Check for game ID in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -39,7 +40,7 @@ function initializeSocket() {
         
         // Show turn notification if board is collapsed and it's my turn
         if (!wasMyTurn && isNowMyTurn) {
-            const adLabel = document.querySelector('.ad-label');
+            const adLabel = document.querySelector('.game-label');
             if (adLabel && adLabel.classList.contains('collapsed')) {
                 showTurnNotificationIndicator();
                 showNotification("It's your turn!", 'turn');
@@ -99,6 +100,18 @@ function initializeSocket() {
     socket.on('invite-url-generated', (data) => {
         showInviteUrlModal(data.inviteUrl);
     });
+    
+    socket.on('possible-moves', (data) => {
+        highlightPossibleMoves(data.square, data.moves);
+    });
+    
+    socket.on('draw-offer-denied', (data) => {
+        showNotification(data.reason, 'error');
+    });
+    
+    socket.on('message-error', (data) => {
+        showNotification(data.error, 'error');
+    });
 }
 
 // Time display
@@ -134,7 +147,8 @@ function initializeEventListeners() {
         replayBtn.addEventListener('click', offerReplay);
     }
     
-    // Chat functionality
+    // Enhanced Chat functionality with validation
+    setupInputValidation();
     document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
     document.getElementById('chatInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -158,6 +172,9 @@ function initializeEventListeners() {
             closeQuestionModal();
         }
     });
+    
+    // Settings dropdown functionality
+    setupSettingsDropdown();
     
     // Collapsible sections
     initializeCollapsibleSections();
@@ -222,7 +239,7 @@ function handleSquareClick(square) {
             selectedSquare.classList.remove('selected');
             selectedSquare = null;
             clearPossibleMoves();
-        } else if (square.classList.contains('possible-move')) {
+        } else if (square.classList.contains('possible-move') || square.classList.contains('capture-move')) {
             // Make move to valid square
             const from = selectedSquare.dataset.square;
             const to = square.dataset.square;
@@ -267,22 +284,22 @@ function handleSquareClick(square) {
                     clearPossibleMoves();
                     selectedSquare = square;
                     square.classList.add('selected');
-                    showPossibleMoves(square);
-                } else {
-                    // Clear selection if clicking opponent piece
-                    selectedSquare.classList.remove('selected');
-                    selectedSquare = null;
-                    clearPossibleMoves();
+                    
+                    // Request possible moves from server
+                    socket.emit('get-possible-moves', {
+                        gameId: currentGame.id,
+                        square: square.dataset.square
+                    });
                 }
             } else {
-                // Clear selection if clicking empty square that's not valid
+                // Clicked on empty square while having selection
                 selectedSquare.classList.remove('selected');
                 selectedSquare = null;
                 clearPossibleMoves();
             }
         }
     } else {
-        // Select square if it has player's piece
+        // No piece selected, try to select
         const piece = square.querySelector('.chess-piece');
         if (piece) {
             const isWhitePiece = piece.classList.contains('white');
@@ -291,7 +308,12 @@ function handleSquareClick(square) {
             if (isWhitePiece === playerIsWhite) {
                 selectedSquare = square;
                 square.classList.add('selected');
-                showPossibleMoves(square);
+                
+                // Request possible moves from server
+                socket.emit('get-possible-moves', {
+                    gameId: currentGame.id,
+                    square: square.dataset.square
+                });
             }
         }
     }
@@ -621,6 +643,21 @@ function clearPossibleMoves() {
     });
 }
 
+function highlightPossibleMoves(sourceSquare, moves) {
+    clearPossibleMoves();
+    
+    moves.forEach(move => {
+        const targetSquare = document.querySelector(`[data-square="${move.to}"]`);
+        if (targetSquare) {
+            if (move.isCapture) {
+                targetSquare.classList.add('capture-move');
+            } else {
+                targetSquare.classList.add('possible-move');
+            }
+        }
+    });
+}
+
 function updateGameDisplay(game) {
     const previousCurrentPlayer = currentGame ? currentGame.currentPlayer : null;
     
@@ -758,7 +795,31 @@ function updateGameDisplay(game) {
             statusElement.textContent = 'Game abandoned';
             gameActionsElement.style.display = 'none';
             drawOfferElement.style.display = 'none';
-            joinBtnElement.style.display = 'block';
+            
+            // Show replay button for players, even if game was abandoned
+            const abandonedPlayer = game.players.find(p => p.id === socket.id);
+            if (abandonedPlayer && replayBtnElement) {
+                replayBtnElement.style.display = 'block';
+                
+                // Show replay offer status
+                if (game.replayOffer) {
+                    if (game.replayOffer.from === socket.id) {
+                        replayBtnElement.textContent = 'Replay Offered';
+                        replayBtnElement.disabled = true;
+                    } else {
+                        // Show accept/decline buttons for the recipient
+                        showReplayOfferDialog(game.replayOffer.from);
+                    }
+                } else {
+                    replayBtnElement.innerHTML = '<i class="fas fa-repeat"></i> Replay';
+                    replayBtnElement.disabled = false;
+                }
+            } else if (!abandonedPlayer) {
+                // Show join next game button for spectators
+                joinBtnElement.style.display = 'block';
+                joinBtnElement.textContent = 'Join Next Game';
+            }
+            
             stopGameTimer();
             break;
     }
@@ -1146,11 +1207,94 @@ function addCommentToDisplay(comment) {
     container.scrollTop = container.scrollHeight;
 }
 
+// Enhanced input validation and character counting
+function setupInputValidation() {
+    // Chat input validation
+    const chatInput = document.getElementById('chatInput');
+    const chatCounter = document.getElementById('chatCounter');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    
+    if (chatInput && chatCounter && sendMessageBtn) {
+        chatInput.addEventListener('input', function() {
+            const length = this.value.length;
+            const maxLength = this.getAttribute('maxlength') || 200;
+            
+            chatCounter.textContent = `${length}/${maxLength}`;
+            
+            // Update counter styling
+            chatCounter.className = 'char-counter';
+            if (length > maxLength * 0.8) {
+                chatCounter.classList.add('warning');
+            }
+            if (length > maxLength * 0.95) {
+                chatCounter.classList.remove('warning');
+                chatCounter.classList.add('error');
+            }
+            
+            // Enable/disable send button
+            sendMessageBtn.disabled = length === 0 || length > maxLength;
+        });
+    }
+    
+    // Comment input validation
+    const commentContent = document.getElementById('commentContent');
+    const commentCounter = document.getElementById('commentCounter');
+    const sendCommentBtn = document.getElementById('sendCommentBtn');
+    
+    if (commentContent && commentCounter && sendCommentBtn) {
+        commentContent.addEventListener('input', function() {
+            const length = this.value.length;
+            const maxLength = this.getAttribute('maxlength') || 500;
+            
+            commentCounter.textContent = `${length}/${maxLength}`;
+            
+            // Update counter styling
+            commentCounter.className = 'char-counter';
+            if (length > maxLength * 0.8) {
+                commentCounter.classList.add('warning');
+            }
+            if (length > maxLength * 0.95) {
+                commentCounter.classList.remove('warning');
+                commentCounter.classList.add('error');
+            }
+            
+            // Enable/disable send button
+            sendCommentBtn.disabled = length === 0 || length > maxLength;
+        });
+    }
+    
+    // Author name validation
+    const commentAuthor = document.getElementById('commentAuthor');
+    if (commentAuthor) {
+        commentAuthor.addEventListener('input', function() {
+            const length = this.value.length;
+            const maxLength = this.getAttribute('maxlength') || 50;
+            
+            if (length > maxLength) {
+                this.value = this.value.substring(0, maxLength);
+            }
+        });
+    }
+}
+
 async function sendComment() {
     const author = document.getElementById('commentAuthor').value.trim() || 'Anonymous';
     const content = document.getElementById('commentContent').value.trim();
+    const sendBtn = document.getElementById('sendCommentBtn');
     
-    if (!content) return;
+    if (!content || content.length === 0) {
+        showNotification('Please enter a message', 'warning');
+        return;
+    }
+    
+    if (content.length > 500) {
+        showNotification('Message too long (max 500 characters)', 'error');
+        return;
+    }
+    
+    // Disable button during sending
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
     
     try {
         const response = await fetch('/api/comments', {
@@ -1163,10 +1307,71 @@ async function sendComment() {
         
         if (response.ok) {
             document.getElementById('commentContent').value = '';
+            document.getElementById('commentCounter').textContent = '0/500';
+            showNotification('Comment posted successfully!', 'success');
+        } else {
+            throw new Error('Failed to post comment');
         }
     } catch (error) {
         console.error('Error sending comment:', error);
+        showNotification('Failed to post comment. Please try again.', 'error');
+    } finally {
+        // Re-enable button
+        sendBtn.disabled = true; // Will be enabled by input validation
+        sendBtn.textContent = 'Post';
     }
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Style the notification
+    Object.assign(notification.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '12px 16px',
+        borderRadius: '6px',
+        color: 'white',
+        fontWeight: '500',
+        fontSize: '14px',
+        zIndex: '10000',
+        maxWidth: '300px',
+        wordWrap: 'break-word',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        transform: 'translateX(100%)',
+        transition: 'transform 0.3s ease'
+    });
+    
+    // Set background color based on type
+    const colors = {
+        success: '#27ae60',
+        error: '#e74c3c',
+        warning: '#f39c12',
+        info: '#3498db'
+    };
+    notification.style.backgroundColor = colors[type] || colors.info;
+    
+    // Add to document
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
 function updateCommentsCount() {
@@ -1201,7 +1406,7 @@ function escapeHtml(text) {
 // Network IP detection helper
 function getLocalIP() {
     // This is a simplified version - in production you'd want to show the actual IP
-    return 'localhost';
+    return window.location.href;
 }
 
 // Auto-resize textarea
@@ -1253,17 +1458,45 @@ function playGameEndSound() {
     // Add sound effect for game end
 }
 
-// Messaging Functions
+// Enhanced Messaging Functions
 function sendMessage() {
     const chatInput = document.getElementById('chatInput');
+    const chatCounter = document.getElementById('chatCounter');
+    const sendBtn = document.getElementById('sendMessageBtn');
     const message = chatInput.value.trim();
     
-    if (message && currentGame && currentGame.id) {
+    if (!message || message.length === 0) {
+        showNotification('Please enter a message', 'warning');
+        return;
+    }
+    
+    if (message.length > 200) {
+        showNotification('Message too long (max 200 characters)', 'error');
+        return;
+    }
+    
+    if (currentGame && currentGame.id) {
+        // Disable button during sending
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
         socket.emit('send-message', {
             gameId: currentGame.id,
             message: message
         });
+        
         chatInput.value = '';
+        if (chatCounter) {
+            chatCounter.textContent = '0/200';
+        }
+        
+        // Re-enable button after a short delay
+        setTimeout(() => {
+            sendBtn.disabled = true; // Will be enabled by input validation
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }, 500);
+    } else {
+        showNotification('No active game to send message to', 'warning');
     }
 }
 
@@ -1629,7 +1862,7 @@ function addCommentToDisplay(comment) {
 // Collapsible sections functionality
 function initializeCollapsibleSections() {
     // Chess advertisement collapsible
-    const adLabel = document.querySelector('.ad-label');
+    const adLabel = document.querySelector('.game-label');
     const adContent = document.querySelector('.chess-ad-content');
     
     if (adLabel && adContent) {
@@ -1734,7 +1967,7 @@ function updateSpectatorsDisplay(spectators) {
 
 // Turn notification for collapsed board
 function checkForTurnNotification() {
-    const adLabel = document.querySelector('.ad-label');
+    const adLabel = document.querySelector('.game-label');
     if (adLabel && adLabel.classList.contains('collapsed') && 
         currentGame && currentGame.gameState === 'active') {
         
@@ -1746,14 +1979,14 @@ function checkForTurnNotification() {
 }
 
 function showTurnNotificationIndicator() {
-    const adLabel = document.querySelector('.ad-label');
+    const adLabel = document.querySelector('.game-label');
     if (adLabel) {
         adLabel.style.backgroundColor = '#ffc2c2';
     }
 }
 
 function clearTurnNotificationIndicator() {
-    const indicator = document.querySelector('.ad-label');
+    const indicator = document.querySelector('.game-label');
     if (indicator) {
         indicator.style.backgroundColor = '#f9f8f8';
     }
@@ -1897,5 +2130,60 @@ function copyInviteUrl() {
         }, 2000);
     } catch (err) {
         showNotification('Failed to copy URL. Please copy manually.', 'error');
+    }
+}
+
+// Settings dropdown functionality
+function setupSettingsDropdown() {
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const themeOptions = document.querySelectorAll('.theme-option');
+    const chessBoard = document.getElementById('chessBoard');
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('chessTheme') || 'classic';
+    applyTheme(savedTheme);
+    updateActiveTheme(savedTheme);
+    
+    // Toggle settings menu
+    settingsBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('show');
+    });
+    
+    // Close settings menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+            settingsMenu.classList.remove('show');
+        }
+    });
+    
+    // Theme selection
+    themeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const theme = this.dataset.theme;
+            applyTheme(theme);
+            updateActiveTheme(theme);
+            localStorage.setItem('chessTheme', theme);
+            
+            // Close settings menu after selection
+            settingsMenu.classList.remove('show');
+        });
+    });
+    
+    function applyTheme(theme) {
+        // Remove all theme classes
+        chessBoard.className = chessBoard.className.replace(/theme-\w+/g, '');
+        // Add new theme class
+        chessBoard.classList.add(`theme-${theme}`);
+    }
+    
+    function updateActiveTheme(theme) {
+        themeOptions.forEach(option => {
+            option.classList.remove('active');
+            if (option.dataset.theme === theme) {
+                option.classList.add('active');
+            }
+        });
     }
 }
