@@ -5,7 +5,6 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { Chess } = require('chess.js');
 
 const app = express();
 const server = http.createServer(app);
@@ -46,90 +45,112 @@ const blogPosts = [
   {
     id: uuidv4(),
     title: "How to generate UUID v4 in JavaScript without external libraries?",
-    content: "I need to generate UUID v4 in my JavaScript application but I don't want to add any external dependencies. Is there a way to do this with just vanilla JavaScript? I've seen some implementations using Math.random() but I'm not sure if they're cryptographically secure.",
+    content: "I need to generate UUID v4 in my JavaScript application but I don't want to add any external dependencies. Is there a way to do this with just vanilla JavaScript? I've seen some implementations using Math.random() but I'm not sure if they're cryptographically secure.\n\nI've tried this approach:\n```javascript\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n```\n\nBut I'm concerned about the randomness quality. What's the best practice for production applications?",
     author: "devNewbie2024",
     votes: 187,
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    tags: ["javascript", "uuid", "random"],
+    tags: ["javascript", "uuid", "random", "security"],
     answers: 12,
     views: 15420
   },
   {
     id: uuidv4(),
     title: "UUID performance vs auto-increment integers in PostgreSQL",
-    content: "I'm designing a new database schema and considering whether to use UUIDs or auto-increment integers as primary keys. What are the performance implications? I've heard UUIDs can slow down queries due to their size and randomness. My application will have millions of records.",
+    content: "I'm designing a new database schema and considering whether to use UUIDs or auto-increment integers as primary keys. What are the performance implications? I've heard UUIDs can slow down queries due to their size and randomness. My application will have millions of records.\n\nSpecific concerns:\n1. Index performance with UUID primary keys\n2. Storage overhead (16 bytes vs 4/8 bytes)\n3. INSERT performance with random UUIDs\n4. Foreign key join performance\n\nWould using UUID v1 (timestamp-based) help with the locality issues? Are there any PostgreSQL-specific optimizations I should know about?",
     author: "DatabaseArchitect",
     votes: 143,
     timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-    tags: ["postgresql", "uuid", "performance", "database-design"],
+    tags: ["postgresql", "uuid", "performance", "database-design", "indexing"],
     answers: 8,
     views: 9834
   },
   {
     id: uuidv4(),
+    title: "React useEffect dependency array with objects causing infinite re-renders",
+    content: "I'm having trouble with useEffect causing infinite re-renders when I include an object in the dependency array. Here's my code:\n\n```javascript\nconst MyComponent = ({ config }) => {\n  const [data, setData] = useState(null);\n  \n  useEffect(() => {\n    fetchData(config).then(setData);\n  }, [config]); // This causes infinite re-renders\n  \n  return <div>{data?.name}</div>;\n};\n```\n\nThe parent component creates a new `config` object on every render. I know I can use `useMemo` in the parent, but is there a way to handle this in the child component? I've tried `JSON.stringify` but that feels hacky.\n\nWhat's the best practice for handling object dependencies in useEffect?",
+    author: "ReactDeveloper123",
+    votes: 234,
+    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
+    tags: ["reactjs", "hooks", "useeffect", "javascript"],
+    answers: 15,
+    views: 18943
+  },
+  {
+    id: uuidv4(),
     title: "Why does UUID.randomUUID() sometimes produce duplicate values?",
-    content: "I'm using Java's UUID.randomUUID() method in a multi-threaded application and occasionally getting duplicate UUIDs. This shouldn't be possible with proper UUID v4 generation. Could this be related to threading issues or insufficient entropy?",
+    content: "I'm using Java's UUID.randomUUID() method in a multi-threaded application and occasionally getting duplicate UUIDs. This shouldn't be possible with proper UUID v4 generation. Could this be related to threading issues or insufficient entropy?\n\n```java\npublic class UUIDGenerator {\n    private static final ExecutorService executor = Executors.newFixedThreadPool(10);\n    private static final Set<String> generatedUUIDs = new ConcurrentHashMap().newKeySet();\n    \n    public void generateUUIDs() {\n        for (int i = 0; i < 1000; i++) {\n            executor.submit(() -> {\n                String uuid = UUID.randomUUID().toString();\n                if (!generatedUUIDs.add(uuid)) {\n                    System.out.println(\"Duplicate UUID: \" + uuid);\n                }\n            });\n        }\n    }\n}\n```\n\nI'm seeing duplicates about once every 10,000 generations. Is this normal? How can I ensure truly unique UUIDs?",
     author: "JavaDeveloper123",
     votes: 89,
-    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-    tags: ["java", "uuid", "multithreading", "random"],
+    timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    tags: ["java", "uuid", "multithreading", "random", "concurrency"],
     answers: 5,
     views: 6721
   },
   {
     id: uuidv4(),
     title: "Best practices for storing UUIDs in MongoDB",
-    content: "What's the recommended way to store UUIDs in MongoDB? Should I use the UUID BSON type or store them as strings? I'm concerned about storage efficiency and query performance. Also, should I use UUID v4 or would v1 be better for time-based queries?",
+    content: "What's the recommended way to store UUIDs in MongoDB? Should I use the UUID BSON type or store them as strings? I'm concerned about storage efficiency and query performance. Also, should I use UUID v4 or would v1 be better for time-based queries?\n\n```javascript\n// Option 1: String\n{\n  _id: ObjectId(),\n  userId: \"550e8400-e29b-41d4-a716-446655440000\",\n  createdAt: ISODate()\n}\n\n// Option 2: UUID BSON\n{\n  _id: ObjectId(),\n  userId: UUID(\"550e8400-e29b-41d4-a716-446655440000\"),\n  createdAt: ISODate()\n}\n\n// Option 3: UUID as _id\n{\n  _id: UUID(\"550e8400-e29b-41d4-a716-446655440000\"),\n  createdAt: ISODate()\n}\n```\n\nWhich approach gives the best performance for:\n- Indexing\n- Query operations\n- Storage efficiency\n- Cross-language compatibility",
     author: "MongoMaster",
     votes: 76,
-    timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-    tags: ["mongodb", "uuid", "bson", "storage"],
+    timestamp: new Date(Date.now() - 16 * 60 * 60 * 1000),
+    tags: ["mongodb", "uuid", "bson", "storage", "performance"],
     answers: 7,
     views: 4532
   },
   {
     id: uuidv4(),
     title: "Convert UUID to short URL-safe string for public APIs",
-    content: "I need to expose UUIDs in public APIs but they're quite long and not very user-friendly. What's the best way to convert a UUID to a shorter, URL-safe string that I can later convert back to the original UUID? Base64 encoding removes some characters but still quite long.",
+    content: "I need to expose UUIDs in public APIs but they're quite long and not very user-friendly. What's the best way to convert a UUID to a shorter, URL-safe string that I can later convert back to the original UUID? Base64 encoding removes some characters but still quite long.\n\n```python\nimport uuid\nimport base64\n\n# Original UUID\noriginal_uuid = uuid.uuid4()\nprint(f\"Original: {original_uuid}\")  # 550e8400-e29b-41d4-a716-446655440000\n\n# Base64 encoding\nuuid_bytes = original_uuid.bytes\nencoded = base64.urlsafe_b64encode(uuid_bytes).decode('ascii').rstrip('=')\nprint(f\"Encoded: {encoded}\")  # VQ6EAOKbQdSnFkRmVUQAAA\n\n# Decoding\npadded = encoded + '=' * (4 - len(encoded) % 4)\ndecoded_bytes = base64.urlsafe_b64decode(padded)\ndecoded_uuid = uuid.UUID(bytes=decoded_bytes)\nprint(f\"Decoded: {decoded_uuid}\")\n```\n\nThis gives me 22 characters instead of 36. Is there a better approach? What about base58 or base32?",
     author: "APIDesigner",
-    votes: 234,
-    timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
-    tags: ["uuid", "encoding", "api-design", "url"],
-    answers: 15,
-    views: 18943
-  },
-  {
-    id: uuidv4(),
-    title: "UUID v1 vs v4: When to use which version?",
-    content: "I understand the difference between UUID v1 (timestamp + MAC) and v4 (random), but I'm not sure when to use each. For user IDs in a web application, would v4 be better for privacy? Are there any performance considerations? What about v5 with SHA-1 hashing?",
-    author: "SystemDesigner",
     votes: 156,
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    tags: ["uuid", "version", "privacy", "system-design"],
-    answers: 9,
+    timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000),
+    tags: ["uuid", "encoding", "api-design", "url", "base64"],
+    answers: 11,
     views: 12678
   },
   {
     id: uuidv4(),
+    title: "Python asyncio: How to properly handle exceptions in concurrent tasks?",
+    content: "I'm working with asyncio and having trouble properly handling exceptions when running multiple tasks concurrently. Some tasks fail but others succeed, and I want to collect both results and errors.\n\n```python\nimport asyncio\nimport aiohttp\nimport logging\n\nasync def fetch_url(session, url):\n    try:\n        async with session.get(url) as response:\n            return await response.text()\n    except Exception as e:\n        logging.error(f\"Error fetching {url}: {e}\")\n        raise\n\nasync def main():\n    urls = ['http://example.com', 'http://invalid-url', 'http://google.com']\n    \n    async with aiohttp.ClientSession() as session:\n        tasks = [fetch_url(session, url) for url in urls]\n        \n        # How do I get both successful results and errors?\n        results = await asyncio.gather(*tasks, return_exceptions=True)\n        \n        for i, result in enumerate(results):\n            if isinstance(result, Exception):\n                print(f\"URL {urls[i]} failed: {result}\")\n            else:\n                print(f\"URL {urls[i]} succeeded: {len(result)} chars\")\n```\n\nIs `return_exceptions=True` the right approach? What about using `asyncio.as_completed()` instead?",
+    author: "PythonAsync",
+    votes: 198,
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    tags: ["python", "asyncio", "exception-handling", "aiohttp", "concurrency"],
+    answers: 9,
+    views: 11234
+  },
+  {
+    id: uuidv4(),
     title: "Validating UUID format with regex - what's the best pattern?",
-    content: "I need to validate UUID strings on both client and server side. What's the most reliable regex pattern for UUID validation? I've found several different patterns online and not sure which one is the most comprehensive and handles edge cases properly.",
+    content: "I need to validate UUID strings on both client and server side. What's the most reliable regex pattern for UUID validation? I've found several different patterns online and not sure which one is the most comprehensive and handles edge cases properly.\n\n```javascript\n// Pattern 1 - Simple\nconst pattern1 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\n// Pattern 2 - With version validation\nconst pattern2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\n// Pattern 3 - RFC 4122 compliant\nconst pattern3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\nfunction validateUUID(uuid) {\n    return pattern2.test(uuid);\n}\n```\n\nShould I validate the version bits and variant bits? What about case sensitivity? Also, do I need to handle UUID formats without hyphens?",
     author: "ValidationExpert",
     votes: 298,
-    timestamp: new Date(Date.now() - 36 * 60 * 60 * 1000),
-    tags: ["regex", "uuid", "validation"],
-    answers: 11,
+    timestamp: new Date(Date.now() - 30 * 60 * 60 * 1000),
+    tags: ["regex", "uuid", "validation", "javascript", "rfc4122"],
+    answers: 13,
     views: 23456
   },
   {
     id: uuidv4(),
     title: "Memory usage of UUID vs Long in Java applications",
-    content: "I'm building a high-throughput Java application that processes millions of records. Each record has an identifier that could be either a UUID (128-bit) or a Long (64-bit). What's the real-world memory impact of using UUIDs? Should I be concerned about GC pressure?",
+    content: "I'm building a high-throughput Java application that processes millions of records. Each record has an identifier that could be either a UUID (128-bit) or a Long (64-bit). What's the real-world memory impact of using UUIDs? Should I be concerned about GC pressure?\n\n```java\npublic class PerformanceTest {\n    private static final int RECORD_COUNT = 10_000_000;\n    \n    static class RecordWithLong {\n        private final long id;\n        private final String data;\n        \n        RecordWithLong(long id, String data) {\n            this.id = id;\n            this.data = data;\n        }\n    }\n    \n    static class RecordWithUUID {\n        private final UUID id;\n        private final String data;\n        \n        RecordWithUUID(UUID id, String data) {\n            this.id = id;\n            this.data = data;\n        }\n    }\n    \n    public static void testMemoryUsage() {\n        // Test with Long IDs\n        List<RecordWithLong> longRecords = new ArrayList<>();\n        for (int i = 0; i < RECORD_COUNT; i++) {\n            longRecords.add(new RecordWithLong(i, \"data\" + i));\n        }\n        \n        // Test with UUID IDs\n        List<RecordWithUUID> uuidRecords = new ArrayList<>();\n        for (int i = 0; i < RECORD_COUNT; i++) {\n            uuidRecords.add(new RecordWithUUID(UUID.randomUUID(), \"data\" + i));\n        }\n    }\n}\n```\n\nI've measured about 40% more memory usage with UUIDs. Is this worth the benefits of globally unique IDs?",
     author: "PerformanceGuru",
     votes: 67,
-    timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
-    tags: ["java", "uuid", "memory", "performance"],
+    timestamp: new Date(Date.now() - 36 * 60 * 60 * 1000),
+    tags: ["java", "uuid", "memory", "performance", "gc"],
     answers: 6,
     views: 5432
+  },
+  {
+    id: uuidv4(),
+    title: "CSS Grid vs Flexbox: When to use which layout method?",
+    content: "I'm confused about when to use CSS Grid vs Flexbox. Both seem to solve similar problems but I keep reading conflicting advice. Can someone explain the key differences and provide clear guidelines on when to use each?\n\n```css\n/* Flexbox approach */\n.flex-container {\n    display: flex;\n    flex-direction: row;\n    justify-content: space-between;\n    align-items: center;\n}\n\n.flex-item {\n    flex: 1;\n}\n\n/* Grid approach */\n.grid-container {\n    display: grid;\n    grid-template-columns: repeat(3, 1fr);\n    grid-gap: 20px;\n    align-items: center;\n}\n\n.grid-item {\n    /* No additional CSS needed */\n}\n```\n\nI understand that Grid is 2D and Flexbox is 1D, but in practice, when should I choose one over the other? What about browser support and performance considerations?",
+    author: "CSSDesigner",
+    votes: 445,
+    timestamp: new Date(Date.now() - 40 * 60 * 60 * 1000),
+    tags: ["css", "css-grid", "flexbox", "layout", "web-design"],
+    answers: 18,
+    views: 28934
   }
 ];
 
@@ -202,6 +223,7 @@ io.on('connection', (socket) => {
         moveHistory: [],
         lastMove: null,
         replayOffer: null,
+        drawOfferCooldown: 0, // Track moves since last draw offer
         colorAssignment: { first: firstPlayerColor, second: secondPlayerColor },
         inviteUrl: `https://gameoverflow.onrender.com/?gameId=${gameId}`
       });
@@ -278,6 +300,12 @@ io.on('connection', (socket) => {
         game.currentPlayer = nextPlayer;
         game.lastMoveTime = Date.now();
         
+        // Increment draw offer cooldown
+        game.drawOfferCooldown++;
+        
+        // Clear any existing draw offers after a move
+        game.drawOffer = null;
+        
         // Check game state
         const inCheck = isKingInCheck(game.board, nextPlayer);
         const isCheckmateSituation = isCheckmate(game.board, nextPlayer);
@@ -329,7 +357,28 @@ io.on('connection', (socket) => {
     const player = players.get(socket.id);
     
     if (game && player && game.gameState === 'active') {
+      // Check if enough moves have passed since last draw offer (minimum 5 moves)
+      if (game.drawOfferCooldown < 5) {
+        socket.emit('draw-offer-denied', { 
+          reason: `Must wait ${5 - game.drawOfferCooldown} more moves before offering draw again` 
+        });
+        return;
+      }
+      
+      // Check if this player already has a pending draw offer
+      if (game.drawOffer === player.color) {
+        socket.emit('draw-offer-denied', { 
+          reason: 'You already have a pending draw offer' 
+        });
+        return;
+      }
+      
       game.drawOffer = player.color;
+      game.drawOfferCooldown = 0; // Reset cooldown after offering
+      
+      // Pause the game timer to prevent time exploitation
+      game.drawOfferTime = Date.now();
+      
       io.to(gameId).emit('game-update', game);
     }
   });
@@ -345,7 +394,15 @@ io.on('connection', (socket) => {
         game.winner = 'draw';
         game.endReason = 'agreement';
       }
+      
+      // Resume game timer if draw was declined
+      if (!accept && game.drawOfferTime) {
+        const timePaused = Date.now() - game.drawOfferTime;
+        game.lastMoveTime += timePaused; // Adjust last move time to account for pause
+      }
+      
       game.drawOffer = null;
+      game.drawOfferTime = null;
       io.to(gameId).emit('game-update', game);
     }
   });
@@ -398,6 +455,17 @@ io.on('connection', (socket) => {
   });
 
   // Replay functionality
+  socket.on('get-possible-moves', (data) => {
+    const { gameId, square } = data;
+    const game = games.get(gameId);
+    const player = players.get(socket.id);
+    
+    if (game && player && game.gameState === 'active' && game.currentPlayer === player.color) {
+      const possibleMoves = getPossibleMovesForSquare(game.board, square, player.color, game);
+      socket.emit('possible-moves', { square, moves: possibleMoves });
+    }
+  });
+
   socket.on('offer-replay', (data) => {
     const { gameId } = data;
     const game = games.get(gameId);
@@ -472,31 +540,47 @@ io.on('connection', (socket) => {
     const game = games.get(gameId);
     const player = players.get(socket.id);
     
-    if (game && player && message.trim()) {
-      const messageData = {
-        id: uuidv4(),
-        gameId: gameId,
-        sender: player.name,
-        senderColor: player.color,
-        message: message.trim(),
-        timestamp: new Date(),
-        readBy: [socket.id] // Sender automatically reads their own message
-      };
-      
-      if (!game.messages) {
-        game.messages = [];
-      }
-      game.messages.push(messageData);
-      
-      // Check if message contains the AI helper keyword
-      if (message.trim().toLowerCase() === 'beatabdellah') {
-        // Only provide analysis to the person who typed the keyword
-        analyzePositionWithStockfish(gameId, socket.id, player.color);
-      }
-      
-      // Send to all players in the game
-      io.to(gameId).emit('new-message', messageData);
+    // Input validation
+    if (!game || !player || !message) {
+      return;
     }
+    
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage) {
+      return;
+    }
+    
+    // Max length validation (150 characters)
+    if (trimmedMessage.length > 150) {
+      socket.emit('message-error', { error: 'Message too long (max 150 characters)' });
+      return;
+    }
+    
+    // Basic content filtering
+    const forbiddenWords = ['spam', 'hack', 'cheat']; // Add more as needed
+    const lowerMessage = trimmedMessage.toLowerCase();
+    if (forbiddenWords.some(word => lowerMessage.includes(word))) {
+      socket.emit('message-error', { error: 'Message contains inappropriate content' });
+      return;
+    }
+    
+    const messageData = {
+      id: uuidv4(),
+      gameId: gameId,
+      sender: player.name,
+      senderColor: player.color,
+      message: trimmedMessage,
+      timestamp: new Date(),
+      readBy: [socket.id] // Sender automatically reads their own message
+    };
+    
+    if (!game.messages) {
+      game.messages = [];
+    }
+    game.messages.push(messageData);
+    
+    // Send to all players in the game
+    io.to(gameId).emit('new-message', messageData);
   });
 
   socket.on('mark-messages-read', (data) => {
@@ -544,320 +628,41 @@ io.on('connection', (socket) => {
   });
 });
 
-// Chess Analysis using chess.js
-function analyzePositionWithStockfish(gameId, socketId, playerColor) {
-  const game = games.get(gameId);
-  if (!game || !game.board) return;
-
-  try {
-    // Convert our board to FEN notation
-    const fen = boardToFEN(game.board, game.currentPlayer, game);
-    
-    // Create chess.js instance with current position
-    const chess = new Chess(fen);
-    
-    // Get all legal moves
-    const legalMoves = chess.moves({ verbose: true });
-    
-    if (legalMoves.length === 0) {
-      // Game over
-      sendAnalysisToPlayer(gameId, socketId, {
-        evaluation: chess.isCheckmate() ? 'Checkmate' : 'Stalemate',
-        bestMove: null,
-        fen: fen,
-        playerColor: playerColor,
-        legalMoves: []
-      });
-      return;
-    }
-    
-    // Simple evaluation based on material and position
-    const evaluation = evaluatePosition(chess, playerColor);
-    
-    // Find best move using simple heuristics
-    const bestMove = findBestMove(chess, legalMoves, playerColor);
-    
-    sendAnalysisToPlayer(gameId, socketId, {
-      evaluation: evaluation,
-      bestMove: bestMove,
-      fen: fen,
-      playerColor: playerColor,
-      legalMoves: legalMoves
-    });
-    
-  } catch (error) {
-    console.error('Chess analysis error:', error);
-    // Send error response to player
-    io.to(socketId).emit('chess-analysis', {
-      error: 'Analysis unavailable at the moment'
-    });
+function getPossibleMovesForSquare(board, square, playerColor, gameState) {
+  const possibleMoves = [];
+  const fromCol = square.charCodeAt(0) - 97;
+  const fromRow = parseInt(square[1]) - 1;
+  
+  // Check bounds
+  if (fromRow < 0 || fromRow > 7 || fromCol < 0 || fromCol > 7) {
+    return possibleMoves;
   }
-}
-
-function evaluatePosition(chess, playerColor) {
-  // Material values
-  const pieceValues = {
-    'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
-  };
   
-  let whiteScore = 0;
-  let blackScore = 0;
+  const piece = board[7 - fromRow][fromCol];
+  if (!piece) return possibleMoves;
   
-  // Count material
-  const board = chess.board();
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
-      if (piece) {
-        const value = pieceValues[piece.type] || 0;
-        if (piece.color === 'w') {
-          whiteScore += value;
-        } else {
-          blackScore += value;
-        }
+  const isWhitePiece = piece === piece.toUpperCase();
+  if ((playerColor === 'white' && !isWhitePiece) || (playerColor === 'black' && isWhitePiece)) {
+    return possibleMoves;
+  }
+  
+  // Check all possible destination squares
+  for (let toRow = 0; toRow < 8; toRow++) {
+    for (let toCol = 0; toCol < 8; toCol++) {
+      const to = String.fromCharCode(97 + toCol) + (toRow + 1);
+      if (isValidMove(board, square, to, playerColor, gameState)) {
+        const targetPiece = board[7 - toRow][toCol];
+        const isCapture = targetPiece !== null && targetPiece !== undefined;
+        
+        possibleMoves.push({
+          to: to,
+          isCapture: isCapture
+        });
       }
     }
   }
   
-  // Add positional bonuses
-  const mobility = chess.moves().length;
-  const isInCheck = chess.isCheck();
-  
-  let positionalBonus = 0;
-  if (mobility > 20) positionalBonus += 0.2;
-  if (mobility < 10) positionalBonus -= 0.2;
-  if (isInCheck) positionalBonus -= 0.5;
-  
-  const materialDiff = whiteScore - blackScore;
-  const evaluation = playerColor === 'white' ? materialDiff + positionalBonus : -(materialDiff + positionalBonus);
-  
-  return evaluation;
-}
-
-function findBestMove(chess, legalMoves, playerColor) {
-  let bestMove = null;
-  let bestScore = -Infinity;
-  
-  for (const move of legalMoves) {
-    let score = 0;
-    
-    // Prioritize captures
-    if (move.captured) {
-      const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9 };
-      score += (pieceValues[move.captured] || 0) * 10;
-    }
-    
-    // Prioritize checks
-    chess.move(move);
-    if (chess.isCheck()) {
-      score += 5;
-    }
-    
-    // Prioritize center control
-    const centerSquares = ['e4', 'e5', 'd4', 'd5'];
-    if (centerSquares.includes(move.to)) {
-      score += 2;
-    }
-    
-    // Prioritize piece development
-    if (move.piece === 'n' || move.piece === 'b') {
-      if (move.from.includes('1') || move.from.includes('8')) {
-        score += 1;
-      }
-    }
-    
-    // Avoid moving into attacks
-    const attackers = chess.attackers(move.to, chess.turn() === 'w' ? 'b' : 'w');
-    if (attackers.length > 0) {
-      score -= 3;
-    }
-    
-    chess.undo();
-    
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = move;
-    }
-  }
-  
-  return bestMove ? move.san : null;
-}
-
-function sendAnalysisToPlayer(gameId, socketId, analysisData) {
-  const game = games.get(gameId);
-  if (!game) return;
-  
-  // Convert evaluation to position assessment
-  let positionRank = 'Equal';
-  let positionDescription = 'The position is balanced.';
-  
-  if (typeof analysisData.evaluation === 'string') {
-    // Game over scenarios
-    if (analysisData.evaluation === 'Checkmate') {
-      positionRank = 'Checkmate';
-      positionDescription = 'The game is over - checkmate!';
-    } else if (analysisData.evaluation === 'Stalemate') {
-      positionRank = 'Stalemate';
-      positionDescription = 'The game is over - stalemate!';
-    }
-  } else if (analysisData.evaluation !== null) {
-    const eval_score = analysisData.evaluation;
-    
-    if (eval_score >= 3) {
-      positionRank = 'Winning';
-      positionDescription = 'You have a winning advantage!';
-    } else if (eval_score >= 1) {
-      positionRank = 'Better';
-      positionDescription = 'You have a significant advantage.';
-    } else if (eval_score >= -1) {
-      positionRank = 'Equal';
-      positionDescription = 'The position is roughly equal.';
-    } else if (eval_score >= -3) {
-      positionRank = 'Worse';
-      positionDescription = 'You are at a disadvantage.';
-    } else {
-      positionRank = 'Losing';
-      positionDescription = 'You are in a difficult position.';
-    }
-  }
-  
-  // Convert move to human readable format
-  const moveExplanation = analysisData.bestMove ? 
-    `The AI suggests playing ${analysisData.bestMove}` : 
-    'No moves available.';
-  
-  // Generate strategic tips based on position
-  const strategicTips = generateStrategicTips(analysisData.evaluation, game.board, analysisData.playerColor);
-  
-  // Send analysis only to the requesting player
-  io.to(socketId).emit('chess-analysis', {
-    positionRank: positionRank,
-    positionDescription: positionDescription,
-    evaluation: analysisData.evaluation,
-    bestMove: analysisData.bestMove,
-    moveExplanation: moveExplanation,
-    strategicTips: strategicTips,
-    timeout: analysisData.timeout || false
-  });
-}
-
-function boardToFEN(board, currentPlayer, gameState) {
-  // Convert board to FEN notation
-  let fen = '';
-  
-  // Process each rank (row)
-  for (let row = 0; row < 8; row++) {
-    let emptyCount = 0;
-    let rankStr = '';
-    
-    for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
-      if (!piece || piece === '' || piece === null || piece === undefined) {
-        emptyCount++;
-      } else {
-        if (emptyCount > 0) {
-          rankStr += emptyCount.toString();
-          emptyCount = 0;
-        }
-        // Convert piece notation (uppercase for white, lowercase for black)
-        const pieceStr = piece.toString();
-        const isWhite = pieceStr === pieceStr.toUpperCase();
-        rankStr += isWhite ? pieceStr.toUpperCase() : pieceStr.toLowerCase();
-      }
-    }
-    
-    if (emptyCount > 0) {
-      rankStr += emptyCount.toString();
-    }
-    
-    fen += rankStr;
-    if (row < 7) fen += '/';
-  }
-  
-  // Add active color
-  fen += ` ${currentPlayer === 'white' ? 'w' : 'b'}`;
-  
-  // Add castling rights (simplified - you may want to track this properly)
-  fen += ' KQkq';
-  
-  // Add en passant (simplified)
-  fen += ' -';
-  
-  // Add halfmove and fullmove counters
-  fen += ` 0 ${Math.floor((gameState.moveHistory?.length || 0) / 2) + 1}`;
-  
-  return fen;
-}
-
-function getMoveExplanation(uciMove, board) {
-  if (!uciMove || uciMove.length < 4) {
-    return 'Stockfish suggests considering your options carefully.';
-  }
-  
-  const from = uciMove.substring(0, 2);
-  const to = uciMove.substring(2, 4);
-  const fromCol = from.charCodeAt(0) - 97; // 'a' = 0
-  const fromRow = 8 - parseInt(from.charAt(1));
-  const toCol = to.charCodeAt(0) - 97;
-  const toRow = 8 - parseInt(to.charAt(1));
-  
-  const piece = board[fromRow][fromCol];
-  let explanation = `Move your ${getPieceName(piece)} from ${from} to ${to}`;
-  
-  // Check if it's a capture
-  const targetPiece = board[toRow][toCol];
-  if (targetPiece && targetPiece !== '') {
-    explanation += ` (capturing ${getPieceName(targetPiece)})`;
-  }
-  
-  return explanation + '.';
-}
-
-function getPieceName(piece) {
-  if (!piece) return 'piece';
-  
-  const names = {
-    'k': 'king', 'q': 'queen', 'r': 'rook', 
-    'b': 'bishop', 'n': 'knight', 'p': 'pawn'
-  };
-  
-  return names[piece.toLowerCase()] || 'piece';
-}
-
-function generateStrategicTips(evaluation, board, playerColor) {
-  const tips = [];
-  
-  if (typeof evaluation === 'string') {
-    if (evaluation.includes('Mate in')) {
-      tips.push('Focus on delivering checkmate quickly');
-      tips.push('Look for forcing moves and checks');
-    } else {
-      tips.push('Defend carefully and look for counterplay');
-      tips.push('Try to create complications');
-    }
-  } else if (evaluation !== null) {
-    const eval_score = playerColor === 'white' ? evaluation : -evaluation;
-    
-    if (eval_score >= 1) {
-      tips.push('Maintain your advantage with solid moves');
-      tips.push('Avoid unnecessary complications');
-      tips.push('Consider trading pieces to simplify');
-    } else if (eval_score <= -1) {
-      tips.push('Look for tactical opportunities');
-      tips.push('Create counterplay and complications');
-      tips.push('Defend key squares and pieces');
-    } else {
-      tips.push('Improve your piece activity');
-      tips.push('Control key central squares');
-      tips.push('Look for pawn breaks');
-    }
-  }
-  
-  // Add general tips based on position
-  tips.push('Keep your king safe');
-  tips.push('Develop pieces toward the center');
-  
-  return tips.slice(0, 3); // Return max 3 tips
+  return possibleMoves;
 }
 
 // Chess helper functions
@@ -1050,12 +855,15 @@ function isPieceMoveLegal(board, piece, fromRow, fromCol, toRow, toCol, isWhite,
           }
         }
         
-        // Check if king doesn't pass through check
+        // Check if king doesn't pass through check or land in check
         for (let i = 1; i <= 2; i++) {
           const testBoard = JSON.parse(JSON.stringify(board));
-          testBoard[7 - fromRow][fromCol + (i * step)] = testBoard[7 - fromRow][fromCol];
+          const newKingCol = fromCol + (i * step);
+          testBoard[7 - fromRow][newKingCol] = testBoard[7 - fromRow][fromCol];
           testBoard[7 - fromRow][fromCol] = null;
-          if (isKingInCheck(testBoard, isWhite ? 'white' : 'black')) {
+          
+          // Check if any enemy piece can attack this square
+          if (isSquareUnderAttack(testBoard, fromRow, newKingCol, isWhite ? 'black' : 'white')) {
             return false;
           }
         }
@@ -1085,6 +893,28 @@ function isPathClear(board, fromRow, fromCol, toRow, toCol) {
   }
   
   return true;
+}
+
+function isSquareUnderAttack(board, targetRow, targetCol, attackingColor) {
+  // Check if any piece of the attacking color can attack the target square
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece) {
+        const isPieceWhite = piece === piece.toUpperCase();
+        const pieceColor = isPieceWhite ? 'white' : 'black';
+        
+        if (pieceColor === attackingColor) {
+          const fromRow = 7 - row;
+          const fromCol = col;
+          if (isPieceMoveLegal(board, piece.toLowerCase(), fromRow, fromCol, targetRow, targetCol, isPieceWhite)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
 }
 
 function isKingInCheck(board, color) {
