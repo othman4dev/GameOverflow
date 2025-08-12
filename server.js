@@ -203,7 +203,7 @@ io.on('connection', (socket) => {
         lastMove: null,
         replayOffer: null,
         colorAssignment: { first: firstPlayerColor, second: secondPlayerColor },
-        inviteUrl: `${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://${process.env.HOST || 'localhost:3000'}/?gameId=${gameId}`
+        inviteUrl: `https://gameoverflow.onrender.com/?gameId=${gameId}`
       });
     }
 
