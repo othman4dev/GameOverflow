@@ -5,16 +5,230 @@ let selectedSquare = null;
 let playerColor = null;
 let gameTimer = null;
 
+// Initialize captured pieces tracking
+let capturedPieces = {
+    white: {},
+    black: {}
+};
+
+const pieceValues = {
+    'p': 1, 'P': 1, // Pawn
+    'r': 5, 'R': 5, // Rook
+    'n': 3, 'N': 3, // Knight
+    'b': 3, 'B': 3, // Bishop
+    'q': 9, 'Q': 9, // Queen
+    'k': 0, 'K': 0  // King (no value)
+};
+
+const pieceIcons = {
+    'p': '♟', 'P': '♙', // Pawn
+    'r': '♜', 'R': '♖', // Rook
+    'n': '♞', 'N': '♘', // Knight
+    'b': '♝', 'B': '♗', // Bishop
+    'q': '♛', 'Q': '♕', // Queen
+    'k': '♚', 'K': '♔'  // King
+};
+
+// Function to update captured pieces display
+function updateCapturedPieces() {
+    const p1Container = document.getElementById('p1Captured');  // Player (bottom)
+    const p2Container = document.getElementById('p2Captured');  // Opponent (top)
+    const p1Advantage = document.getElementById('p1Advantage'); // Player advantage
+    const p2Advantage = document.getElementById('p2Advantage'); // Opponent advantage
+    
+    console.log('Updating captured pieces:', capturedPieces);
+    
+    if (!p1Container || !p2Container) {
+        console.error('Captured pieces containers not found');
+        return;
+    }
+    
+    // Hide captures if game hasn't started
+    const capturedContainers = document.querySelectorAll('.captured-pieces-container');
+    if (!currentGame || currentGame.gameState === 'waiting' || !currentGame.moveHistory || currentGame.moveHistory.length === 0) {
+        capturedContainers.forEach(container => container.style.display = 'none');
+        return;
+    } else {
+        capturedContainers.forEach(container => container.style.display = 'block');
+    }
+    
+    // Clear containers
+    p1Container.innerHTML = '';
+    p2Container.innerHTML = '';
+    
+    // Determine player colors
+    const myPlayer = currentGame.players.find(p => p.id === socket.id);
+    const isPlayerWhite = myPlayer && myPlayer.color === 'white';
+    
+    // Calculate material values
+    let playerCapturedValue = 0;
+    let opponentCapturedValue = 0;
+    
+    // Player captured pieces (what player has taken) - shown at bottom
+    const playerCapturedPieces = isPlayerWhite ? capturedPieces.black : capturedPieces.white;
+    Object.entries(playerCapturedPieces).forEach(([piece, count]) => {
+        if (count > 0) {
+            console.log(`Player captured: ${piece} x${count}`);
+            const pieceElement = document.createElement('div');
+            pieceElement.className = `captured-piece ${piece === piece.toUpperCase() ? 'white-piece' : 'black-piece'}`;
+            pieceElement.innerHTML = `
+                <span class="captured-piece-icon">${pieceIcons[piece] || piece}</span>
+                ${count > 1 ? `<span class="captured-piece-count">${count}</span>` : ''}
+            `;
+            p1Container.appendChild(pieceElement);
+            playerCapturedValue += pieceValues[piece] * count;
+        }
+    });
+    
+    // Opponent captured pieces (what opponent has taken) - shown at top
+    const opponentCapturedPieces = isPlayerWhite ? capturedPieces.white : capturedPieces.black;
+    Object.entries(opponentCapturedPieces).forEach(([piece, count]) => {
+        if (count > 0) {
+            console.log(`Opponent captured: ${piece} x${count}`);
+            const pieceElement = document.createElement('div');
+            pieceElement.className = `captured-piece ${piece === piece.toUpperCase() ? 'white-piece' : 'black-piece'}`;
+            pieceElement.innerHTML = `
+                <span class="captured-piece-icon">${pieceIcons[piece] || piece}</span>
+                ${count > 1 ? `<span class="captured-piece-count">${count}</span>` : ''}
+            `;
+            p2Container.appendChild(pieceElement);
+            opponentCapturedValue += pieceValues[piece] * count;
+        }
+    });
+    
+    // Update advantage display with point difference
+    const playerAdvantage = playerCapturedValue - opponentCapturedValue;
+    const opponentAdvantage = opponentCapturedValue - playerCapturedValue;
+    
+    console.log(`Material difference: Player +${playerAdvantage}, Opponent +${opponentAdvantage}`);
+    
+    // Update player advantage (bottom)
+    if (playerAdvantage > 0) {
+        p1Advantage.textContent = `+${playerAdvantage}`;
+        p1Advantage.className = `player-advantage ${isPlayerWhite ? 'white' : 'black'}`;
+    } else {
+        p1Advantage.textContent = '';
+        p1Advantage.className = `player-advantage ${isPlayerWhite ? 'white' : 'black'} neutral`;
+    }
+    
+    // Update opponent advantage (top)
+    if (opponentAdvantage > 0) {
+        p2Advantage.textContent = `+${opponentAdvantage}`;
+        p2Advantage.className = `player-advantage ${isPlayerWhite ? 'black' : 'white'}`;
+    } else {
+        p2Advantage.textContent = '';
+        p2Advantage.className = `player-advantage ${isPlayerWhite ? 'black' : 'white'} neutral`;
+    }
+}
+
+// Function to track piece capture
+function trackPieceCapture(capturedPiece) {
+    if (!capturedPiece || capturedPiece === ' ') return;
+    
+    const isWhite = capturedPiece === capturedPiece.toUpperCase();
+    const pieceType = capturedPiece.toLowerCase();
+    
+    if (isWhite) {
+        capturedPieces.white[capturedPiece] = (capturedPieces.white[capturedPiece] || 0) + 1;
+    } else {
+        capturedPieces.black[capturedPiece] = (capturedPieces.black[capturedPiece] || 0) + 1;
+    }
+    
+    updateCapturedPieces();
+}
+
+// Function to reset captured pieces
+function resetCapturedPieces() {
+    capturedPieces = {
+        white: {},
+        black: {}
+    };
+    updateCapturedPieces();
+}
+
+// Function to track board differences and detect captures
+function trackBoardDifferences(oldBoard, newBoard) {
+    // Validate inputs
+    if (!oldBoard || !newBoard || !Array.isArray(oldBoard) || !Array.isArray(newBoard)) {
+        console.error('Invalid board data for capture tracking');
+        return;
+    }
+    
+    if (oldBoard.length !== 8 || newBoard.length !== 8) {
+        console.error('Invalid board dimensions');
+        return;
+    }
+    
+    // Count pieces on both boards
+    const oldPieces = {};
+    const newPieces = {};
+    
+    // Count pieces in old board
+    for (let row = 0; row < 8; row++) {
+        if (!Array.isArray(oldBoard[row]) || oldBoard[row].length !== 8) {
+            console.error(`Invalid old board row ${row}`);
+            continue;
+        }
+        for (let col = 0; col < 8; col++) {
+            const piece = oldBoard[row][col];
+            if (piece && piece !== ' ' && typeof piece === 'string') {
+                oldPieces[piece] = (oldPieces[piece] || 0) + 1;
+            }
+        }
+    }
+    
+    // Count pieces in new board
+    for (let row = 0; row < 8; row++) {
+        if (!Array.isArray(newBoard[row]) || newBoard[row].length !== 8) {
+            console.error(`Invalid new board row ${row}`);
+            continue;
+        }
+        for (let col = 0; col < 8; col++) {
+            const piece = newBoard[row][col];
+            if (piece && piece !== ' ' && typeof piece === 'string') {
+                newPieces[piece] = (newPieces[piece] || 0) + 1;
+            }
+        }
+    }
+    
+    // Find captured pieces by comparing counts
+    for (const piece in oldPieces) {
+        const oldCount = oldPieces[piece];
+        const newCount = newPieces[piece] || 0;
+        const capturedCount = oldCount - newCount;
+        
+        if (capturedCount > 0) {
+            const isWhite = piece === piece.toUpperCase();
+            if (isWhite) {
+                capturedPieces.white[piece] = (capturedPieces.white[piece] || 0) + capturedCount;
+            } else {
+                capturedPieces.black[piece] = (capturedPieces.black[piece] || 0) + capturedCount;
+            }
+        }
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     initializeSocket();
     updateTime();
     setInterval(updateTime, 1000);
-    loadQuestions();
-    loadComments();
+    
+    // Only load questions and comments if the DOM elements exist (for StackOverflow platform)
+    if (document.getElementById('questionsList')) {
+        loadQuestions();
+    }
+    if (document.getElementById('commentsContainer')) {
+        loadComments();
+    }
+    
     initializeEventListeners();
     initializeChessBoard();
-    initializeArticleSystem();
+    
+    // Initialize captured pieces display (hidden by default)
+    const capturedContainers = document.querySelectorAll('.captured-pieces-container');
+    capturedContainers.forEach(container => container.style.display = 'none');
+    updateCapturedPieces();
     
     // Check for game ID in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -27,29 +241,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Socket.IO initialization
 function initializeSocket() {
-    socket = io();
+    try {
+        socket = io();
+        
+        // Add connection error handling
+        socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error);
+            showNotification('Connection error. Please refresh the page.', 'error');
+        });
+        
+        socket.on('disconnect', (reason) => {
+            console.warn('Socket disconnected:', reason);
+            showNotification('Connection lost. Attempting to reconnect...', 'warning');
+        });
+        
+        socket.on('reconnect', () => {
+            console.log('Socket reconnected');
+            showNotification('Reconnected successfully!', 'success');
+        });
     
     socket.on('game-update', (game) => {
-        const wasMyTurn = currentGame && currentGame.gameState === 'active' && 
-                         currentGame.players.find(p => p.id === socket.id && currentGame.currentPlayer === p.color);
-        const isNowMyTurn = game.gameState === 'active' && 
-                           game.players.find(p => p.id === socket.id && game.currentPlayer === p.color);
-        
-        currentGame = game;
-        updateGameDisplay(game);
-        
-        // Show turn notification if board is collapsed and it's my turn
-        if (!wasMyTurn && isNowMyTurn) {
-            const adLabel = document.querySelector('.game-label');
-            if (adLabel && adLabel.classList.contains('collapsed')) {
-                showTurnNotificationIndicator();
-                showNotification("It's your turn!", 'turn');
+        try {
+            if (!game || typeof game !== 'object') {
+                console.error('Invalid game data received');
+                return;
             }
-        }
-        
-        // Clear turn notification if it's not my turn anymore
-        if (wasMyTurn && !isNowMyTurn) {
-            clearTurnNotificationIndicator();
+            
+            const wasMyTurn = currentGame && currentGame.gameState === 'active' && 
+                             currentGame.players.find(p => p.id === socket.id && currentGame.currentPlayer === p.color);
+            const isNowMyTurn = game.gameState === 'active' && 
+                               game.players.find(p => p.id === socket.id && game.currentPlayer === p.color);
+            
+            currentGame = game;
+            updateGameDisplay(game);
+            
+            // Show turn notification if board is collapsed and it's my turn
+            if (!wasMyTurn && isNowMyTurn) {
+                const adLabel = document.querySelector('.game-label');
+                if (adLabel && adLabel.classList.contains('collapsed')) {
+                    showTurnNotificationIndicator();
+                    showNotification("It's your turn!", 'turn');
+                }
+            }
+            
+            // Clear turn notification if it's not my turn anymore
+            if (wasMyTurn && !isNowMyTurn) {
+                clearTurnNotificationIndicator();
+            }
+        } catch (error) {
+            console.error('Error processing game update:', error);
+            showNotification('Error updating game. Please refresh.', 'error');
         }
     });
     
@@ -112,6 +353,11 @@ function initializeSocket() {
     socket.on('message-error', (data) => {
         showNotification(data.error, 'error');
     });
+    
+    } catch (error) {
+        console.error('Error initializing socket:', error);
+        showNotification('Failed to connect to server. Please refresh.', 'error');
+    }
 }
 
 // Time display
@@ -660,6 +906,7 @@ function highlightPossibleMoves(sourceSquare, moves) {
 
 function updateGameDisplay(game) {
     const previousCurrentPlayer = currentGame ? currentGame.currentPlayer : null;
+    const previousGameState = currentGame ? currentGame.gameState : null;
     
     // Update player color reference
     const myPlayer = game.players.find(p => p.id === socket.id);
@@ -667,6 +914,20 @@ function updateGameDisplay(game) {
         playerColor = myPlayer.color;
         // Flip board if player is black
         flipBoardIfNeeded();
+    }
+    
+    // If this is a new game or replay, reset captured pieces
+    if (!currentGame || 
+        (currentGame.id !== game.id) || 
+        (previousGameState === 'finished' && game.gameState === 'active') ||
+        (game.moveHistory && game.moveHistory.length === 0) ||
+        game.gameState === 'waiting') {
+        resetCapturedPieces();
+        console.log('Captured pieces reset for new/replay game');
+        
+        // Hide captured pieces containers for new games
+        const capturedContainers = document.querySelectorAll('.captured-pieces-container');
+        capturedContainers.forEach(container => container.style.display = 'none');
     }
     
     // Update player names and spectator list
@@ -827,6 +1088,9 @@ function updateGameDisplay(game) {
     // Update board
     updateChessBoard(game.board);
     
+    // Update captured pieces display
+    updateCapturedPieces();
+    
     // Highlight last move
     if (game.lastMove) {
         highlightLastMove(game.lastMove);
@@ -907,11 +1171,28 @@ function highlightLastMove(lastMove) {
 }
 
 function updateChessBoard(board) {
+    if (!board || !Array.isArray(board) || board.length !== 8) {
+        console.error('Invalid board data received');
+        return;
+    }
+    
     const squares = document.querySelectorAll('.chess-square');
+    
+    // Track captured pieces if we have a previous board state
+    if (currentGame && currentGame.board && Array.isArray(currentGame.board)) {
+        trackBoardDifferences(currentGame.board, board);
+    }
     
     squares.forEach((square, index) => {
         const row = Math.floor(index / 8);
         const col = index % 8;
+        
+        // Validate board bounds
+        if (row >= 8 || col >= 8 || !board[row]) {
+            console.error(`Invalid board position: ${row}, ${col}`);
+            return;
+        }
+        
         const piece = board[row][col];
         
         // Clear existing piece
@@ -921,7 +1202,7 @@ function updateChessBoard(board) {
         }
         
         // Add new piece if exists
-        if (piece) {
+        if (piece && piece !== ' ') {
             const pieceElement = document.createElement('div');
             pieceElement.className = `chess-piece ${piece === piece.toUpperCase() ? 'white' : 'black'} ${getPieceName(piece)}`;
             square.appendChild(pieceElement);
@@ -2050,16 +2331,23 @@ function showReplayOfferDialog(fromPlayerId) {
 
 // Board flipping functionality
 function flipBoardIfNeeded() {
+    const chessBoard = document.getElementById('chessBoard');
+    const pieces = chessBoard.querySelectorAll('.chess-square');
+    
     if (playerColor === 'black') {
-        const chessBoard = document.getElementById('chessBoard');
         chessBoard.style.transform = 'rotate(180deg)';
         
         // Rotate individual pieces back
-        const pieces = chessBoard.querySelectorAll('.chess-square');
-        console.log(pieces);
-        
         pieces.forEach(piece => {
             piece.style.transform = 'rotate(180deg)';
+        });
+    } else {
+        // Reset board orientation for white player
+        chessBoard.style.transform = 'rotate(0deg)';
+        
+        // Reset individual pieces
+        pieces.forEach(piece => {
+            piece.style.transform = 'rotate(0deg)';
         });
     }
 }
